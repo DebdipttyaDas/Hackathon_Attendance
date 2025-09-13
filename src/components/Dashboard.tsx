@@ -1,17 +1,19 @@
 import React from 'react';
 import { Users, Calendar, CheckCircle, BookOpen, Trophy, TrendingUp, Clock, AlertCircle, BarChart3, PieChart } from 'lucide-react';
-import type { User } from '../App';
+import type { User, useAttendance } from '../App';
 
 interface DashboardProps {
   user: User;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+  const { getAttendanceStats, getClassAttendance } = useAttendance();
+  
   // Mock data for demonstration
   const stats = {
     totalStudents: 1247,
     totalClasses: 45,
-    todayAttendance: 89.5,
+    todayAttendance: parseFloat(getAttendanceStats().percentage),
     upcomingEvents: 12,
     activeActivities: 8,
     completedActivities: 156
@@ -25,12 +27,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   ];
 
   const attendanceTrends = [
-    { class: '10-A', percentage: 92, change: +2.5 },
-    { class: '10-B', percentage: 88, change: -1.2 },
-    { class: '9-A', percentage: 95, change: +4.1 },
-    { class: '9-B', percentage: 87, change: +0.8 },
-    { class: '8-A', percentage: 91, change: +1.5 },
-  ];
+    { class: '10-A', ...getClassAttendance('10-A') },
+    { class: '10-B', ...getClassAttendance('10-B') },
+    { class: '9-A', ...getClassAttendance('9-A') },
+    { class: '9-B', ...getClassAttendance('9-B') },
+    { class: '8-A', ...getClassAttendance('8-A') },
+  ].map(item => ({
+    ...item,
+    change: item.trend,
+    percentage: Math.round(item.percentage)
+  }));
 
   const upcomingEvents = [
     { id: 1, title: 'Science Exhibition', date: '2025-01-25', type: 'Academic', participants: 85 },

@@ -175,26 +175,26 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Present Today</p>
-                  <p className="text-3xl font-bold text-gray-900">1,089</p>
+                  <p className="text-3xl font-bold text-gray-900">{overallStats.totalPresent.toLocaleString()}</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-lg">
                   <Users className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
-              <div className="text-sm text-gray-500 mt-2">Out of 1,247 students</div>
+              <div className="text-sm text-gray-500 mt-2">Out of {overallStats.totalStudents.toLocaleString()} students</div>
             </div>
             
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Absent Today</p>
-                  <p className="text-3xl font-bold text-gray-900">158</p>
+                  <p className="text-3xl font-bold text-gray-900">{overallStats.totalAbsent}</p>
                 </div>
                 <div className="p-3 bg-red-100 rounded-lg">
                   <XCircle className="h-6 w-6 text-red-600" />
                 </div>
               </div>
-              <div className="text-sm text-gray-500 mt-2">12.7% of total students</div>
+              <div className="text-sm text-gray-500 mt-2">{((overallStats.totalAbsent / overallStats.totalStudents) * 100).toFixed(1)}% of total students</div>
             </div>
           </div>
 

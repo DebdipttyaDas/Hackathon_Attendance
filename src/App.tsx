@@ -62,6 +62,31 @@ export interface AttendanceRecord {
   timeMarked: string;
 }
 
+export interface AttendanceContextType {
+  attendanceRecords: AttendanceRecord[];
+  addAttendanceRecords: (records: AttendanceRecord[]) => void;
+  getAttendanceStats: (date?: string, classFilter?: string) => {
+    total: number;
+    present: number;
+    absent: number;
+    late: number;
+    percentage: string;
+  };
+  getClassAttendance: (className: string, dateRange?: number) => {
+    percentage: number;
+    trend: number;
+  };
+}
+
+const AttendanceContext = React.createContext<AttendanceContextType | null>(null);
+
+export const useAttendance = () => {
+  const context = React.useContext(AttendanceContext);
+  if (!context) {
+    throw new Error('useAttendance must be used within AttendanceProvider');
+  }
+  return context;
+};
 export interface Event {
   id: string;
   title: string;
@@ -100,6 +125,15 @@ export interface Activity {
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([
+    { id: '1', studentId: '1', studentName: 'Harpreet Kaur', class: '10', section: 'A', date: '2025-01-20', status: 'present', subject: 'Mathematics', teacherId: 'T001', timeMarked: '09:15' },
+    { id: '2', studentId: '2', studentName: 'Simran Singh', class: '10', section: 'A', date: '2025-01-20', status: 'late', subject: 'Mathematics', teacherId: 'T001', timeMarked: '09:25' },
+    { id: '3', studentId: '3', studentName: 'Arjun Sharma', class: '10', section: 'A', date: '2025-01-20', status: 'absent', subject: 'Mathematics', teacherId: 'T001', timeMarked: '09:15' },
+    { id: '4', studentId: '1', studentName: 'Harpreet Kaur', class: '10', section: 'A', date: '2025-01-19', status: 'present', subject: 'Science', teacherId: 'T001', timeMarked: '10:15' },
+    { id: '5', studentId: '2', studentName: 'Simran Singh', class: '10', section: 'A', date: '2025-01-19', status: 'present', subject: 'Science', teacherId: 'T001', timeMarked: '10:15' },
+    { id: '6', studentId: '4', studentName: 'Priya Patel', class: '10', section: 'A', date: '2025-01-18', status: 'absent', subject: 'English', teacherId: 'T002', timeMarked: '11:15' },
+    { id: '7', studentId: '5', studentName: 'Gurdeep Kaur', class: '10', section: 'A', date: '2025-01-18', status: 'present', subject: 'English', teacherId: 'T002', timeMarked: '11:15' },
+  ]);
 
   // Sample data
   const [users] = useState<User[]>([
@@ -138,6 +172,62 @@ function App() {
     setActiveTab('dashboard');
   };
 
+  const addAttendanceRecords = (newRecords: AttendanceRecord[]) => {
+    setAttendanceRecords(prev => [...prev, ...newRecords]);
+  };
+
+  const getAttendanceStats = (date?: string, classFilter?: string) => {
+    let filteredRecords = attendanceRecords;
+    
+    if (date) {
+      filteredRecords = filteredRecords.filter(record => record.date === date);
+    }
+    
+    if (classFilter) {
+      filteredRecords = filteredRecords.filter(record => `${record.class}-${record.section}` === classFilter);
+    }
+    
+    const total = filteredRecords.length;
+    const present = filteredRecords.filter(record => record.status === 'present').length;
+    const absent = filteredRecords.filter(record => record.status === 'absent').length;
+    const late = filteredRecords.filter(record => record.status === 'late').length;
+    
+    return {
+      total,
+      present,
+      absent,
+      late,
+      percentage: total > 0 ? ((present + late) / total * 100).toFixed(1) : '0'
+    };
+  };
+
+  const getClassAttendance = (className: string, dateRange: number = 30) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - dateRange);
+    
+    const classRecords = attendanceRecords.filter(record => 
+      `${record.class}-${record.section}` === className &&
+      new Date(record.date) >= startDate &&
+      new Date(record.date) <= endDate
+    );
+    
+    const total = classRecords.length;
+    const present = classRecords.filter(record => record.status === 'present' || record.status === 'late').length;
+    const percentage = total > 0 ? (present / total * 100) : 0;
+    
+    // Calculate trend (mock calculation for demo)
+    const trend = Math.random() * 5 - 2.5; // Random trend between -2.5 and +2.5
+    
+    return { percentage: Math.round(percentage * 10) / 10, trend: Math.round(trend * 10) / 10 };
+  };
+
+  const attendanceContextValue: AttendanceContextType = {
+    attendanceRecords,
+    addAttendanceRecords,
+    getAttendanceStats,
+    getClassAttendance
+  };
   const renderContent = () => {
     if (!currentUser) {
       return <LoginPage onLogin={handleLogin} users={users} />;
@@ -174,7 +264,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AttendanceContext.Provider value={attendanceContextValue}>
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -294,7 +385,8 @@ function App() {
           {renderContent()}
         </main>
       </div>
-    </div>
+      </div>
+    </AttendanceContext.Provider>
   );
 }
 

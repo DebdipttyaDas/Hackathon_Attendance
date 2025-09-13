@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { CheckCircle, XCircle, Clock, Search, Filter, Download, Calendar, Users, BarChart3, AlertCircle } from 'lucide-react';
-import type { User, Student, AttendanceRecord } from '../App';
+import type { User, Student, AttendanceRecord, useAttendance } from '../App';
 
 interface AttendanceManagementProps {
   user: User;
 }
 
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ user }) => {
+  const { attendanceRecords, addAttendanceRecords, getAttendanceStats } = useAttendance();
   const [selectedClass, setSelectedClass] = useState('10-A');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedSubject, setSelectedSubject] = useState('Mathematics');
@@ -27,12 +28,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ user }) => 
 
   const [attendanceData, setAttendanceData] = useState<{ [studentId: string]: 'present' | 'absent' | 'late' }>({});
 
-  const [attendanceRecords] = useState<AttendanceRecord[]>([
-    { id: '1', studentId: '1', studentName: 'Harpreet Kaur', class: '10-A', section: 'A', date: '2025-01-20', status: 'present', subject: 'Mathematics', teacherId: 'T001', timeMarked: '09:15' },
-    { id: '2', studentId: '2', studentName: 'Simran Singh', class: '10-A', section: 'A', date: '2025-01-20', status: 'late', subject: 'Mathematics', teacherId: 'T001', timeMarked: '09:25' },
-    { id: '3', studentId: '3', studentName: 'Arjun Sharma', class: '10-A', section: 'A', date: '2025-01-20', status: 'absent', subject: 'Mathematics', teacherId: 'T001', timeMarked: '09:15' },
-  ]);
-
   const handleAttendanceChange = (studentId: string, status: 'present' | 'absent' | 'late') => {
     setAttendanceData(prev => ({
       ...prev,
@@ -41,13 +36,24 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ user }) => 
   };
 
   const handleSubmitAttendance = () => {
-    console.log('Submitting attendance:', {
-      class: selectedClass,
-      date: selectedDate,
-      subject: selectedSubject,
-      attendance: attendanceData
+    const newRecords: AttendanceRecord[] = Object.entries(attendanceData).map(([studentId, status]) => {
+      const student = students.find(s => s.id === studentId);
+      return {
+        id: Date.now().toString() + studentId,
+        studentId,
+        studentName: student?.name || 'Unknown Student',
+        class: selectedClass.split('-')[0],
+        section: selectedClass.split('-')[1],
+        date: selectedDate,
+        status,
+        subject: selectedSubject,
+        teacherId: user.teacherId || user.id,
+        timeMarked: new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit' })
+      };
     });
-    // Here you would typically send the data to your backend
+    
+    addAttendanceRecords(newRecords);
+    setAttendanceData({});
     alert('Attendance submitted successfully!');
   };
 
@@ -58,17 +64,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ user }) => 
       student.rollNumber.includes(searchTerm)
     );
 
-  const getAttendanceStats = () => {
-    const todayRecords = attendanceRecords.filter(record => record.date === selectedDate);
-    const total = todayRecords.length;
-    const present = todayRecords.filter(record => record.status === 'present').length;
-    const absent = todayRecords.filter(record => record.status === 'absent').length;
-    const late = todayRecords.filter(record => record.status === 'late').length;
-    
-    return { total, present, absent, late, percentage: total > 0 ? ((present + late) / total * 100).toFixed(1) : '0' };
-  };
-
-  const stats = getAttendanceStats();
+  const stats = getAttendanceStats(selectedDate, selectedClass);
 
   return (
     <div className="space-y-6">
